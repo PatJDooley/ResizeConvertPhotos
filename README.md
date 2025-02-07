@@ -13,7 +13,7 @@ request a full-sized version of the photo by citing the image name.
 
 2. It converts file types in bulk.
 
-I have a lot of files on my harddrive. They take up 700GB even thoughn they are almost all JPG files. I discovered that the
+I have a lot of files on my harddrive. They take up 700GB even though they are almost all JPG files. I discovered that the
 WebP format is much more space efficient and I could reduce my repository of photos to around 250GB just by converting them
 to webP. But how to do it? I found the ImageMagick library that can read image files in a variety of formats, resize them if wanted, and 
 save them in a different format. Specifically, it could read JPG files and write WebP files. I chose to support formats
