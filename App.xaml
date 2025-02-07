@@ -1,0 +1,15 @@
+﻿<Application x:Class="ResizeAndConvertImages.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ResizeAndConvertImages"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <local:ByteToMBConverter x:Key="ByteToMBConverter"/>
+            <local:ByteToKBConverter x:Key="ByteToKBConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
