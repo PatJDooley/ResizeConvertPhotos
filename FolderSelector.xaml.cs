@@ -8,8 +8,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
 
-namespace ResizeAndConvertImages {
+namespace ConvertFoldersToWebP {
     public partial class FolderSelector : UserControl {
         public FolderSelector() {
             InitializeComponent();
@@ -23,8 +24,13 @@ namespace ResizeAndConvertImages {
             get { return (bool)GetValue(EnabledProperty); }
             set { 
                 SetValue(EnabledProperty, value);
-                ProcessButton.IsEnabled = value;
+                BrowseButton.IsEnabled = value;
             }
+        }
+
+        public string RootFolder {
+            get { return RootFolderTextBox.Text; }
+            set { RootFolderTextBox.Text = value; }
         }
 
         private static void OnEnabledPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
@@ -34,7 +40,7 @@ namespace ResizeAndConvertImages {
         }
 
         private void UpdateControlState(bool isEnabled) {
-            ProcessButton.IsEnabled = isEnabled;
+            BrowseButton.IsEnabled = isEnabled;
         }
 
         public class SelectedFoldersEventArgs : EventArgs {
@@ -47,16 +53,15 @@ namespace ResizeAndConvertImages {
 
         public event EventHandler<SelectedFoldersEventArgs> SelectedFoldersChanged;
 
-        private void ProcessButton_Click(object sender, RoutedEventArgs e) {
-            var selectedFolders = GetSelectedFolders(FolderTreeView.Items.Cast<FolderItem>());
-            SelectedFoldersChanged?.Invoke(this, new SelectedFoldersEventArgs(selectedFolders));
-        }
-
         private void BrowseButton_Click(object sender, RoutedEventArgs e) {
-            var dialog = new System.Windows.Forms.FolderBrowserDialog();
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK) {
-                RootFolderTextBox.Text = dialog.SelectedPath;
-                LoadFolders(dialog.SelectedPath);
+            var dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;  // This line makes the dialog a folder picker
+            dialog.Title = "Select a Folder";  // Optional: set a title for the dialog
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok) {
+                RootFolderTextBox.Text = dialog.FileName;
+                LoadFolders(dialog.FileName);
+                CheckAll.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
+                OK.IsEnabled = CheckAll.IsEnabled;
             }
         }
 
@@ -81,12 +86,19 @@ namespace ResizeAndConvertImages {
             foreach (var item in FolderTreeView.Items.Cast<FolderItem>()) {
                 SetIsSelectedRecursive(item, true); // Recursively check all items
             }
+            CheckAll.IsEnabled = false;
+            ClearChecks.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
+            OK_Click(sender, e);
         }
 
         private void ClearChecks_Click(object sender, RoutedEventArgs e) {
             foreach (var item in FolderTreeView.Items.Cast<FolderItem>()) {
                 SetIsSelectedRecursive(item, false); // Recursively uncheck all items
             }
+            CheckAll.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
+            ClearChecks.IsEnabled = false;
+            OK_Click(sender, e);
+
         }
 
         private void SetIsSelectedRecursive(FolderItem item, bool isSelected) {
@@ -96,6 +108,11 @@ namespace ResizeAndConvertImages {
             foreach (var subFolder in item.SubFolders) {
                 SetIsSelectedRecursive(subFolder, isSelected);
             }
+        }
+
+        private void OK_Click(object sender, RoutedEventArgs e) {
+            var selectedFolders = GetSelectedFolders(FolderTreeView.Items.Cast<FolderItem>());
+            SelectedFoldersChanged?.Invoke(this, new SelectedFoldersEventArgs(selectedFolders));
         }
     }
 

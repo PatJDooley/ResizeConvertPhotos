@@ -13,7 +13,8 @@ using System.Diagnostics;
 using Microsoft.Win32;
 using ImageMagick;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using static ResizeAndConvertImages.FolderSelector;
+using static ConvertFoldersToWebP.FolderSelector;
+using static ConvertFoldersToWebP.Settings1;
 using ImageMagick.Drawing;
 using System.Collections.ObjectModel;
 using System.Formats.Asn1;
@@ -22,16 +23,21 @@ using CsvHelper;
 using Microsoft.VisualBasic;
 using System.Diagnostics.Eventing.Reader;
 using System.Runtime.InteropServices;
+using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties.System;
+using System.Security.Policy;
 
-namespace ResizeAndConvertImages {
+namespace ConvertFoldersToWebP {
     public partial class MainWindow : Window {
         private WindowHandler windowHandler;
         public ObservableCollection<FolderStats> StatsCollection { get; set; }
+        string _RootFolder = string.Empty;
         List<string> _SourceFolders = new List<string>();
         List<string> _SelectedFolders = new List<string>();
         public string _ErrorLog = Path.Combine(Path.GetTempPath(), "Error_Log_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".txt");
         StreamWriter _ErrorLogFile;
         public List<string> _Errors = new List<string>();
+
+        // Values that are stored via Settings1
         string _OutputFolder = string.Empty;
         uint _ImageQuality = 80;
         string _InputType = "jpg";
@@ -53,6 +59,7 @@ namespace ResizeAndConvertImages {
             Delete
         }
         sourceRB _SourceRB = sourceRB.Delete;
+
         public MainWindow() {
             InitializeComponent();
             windowHandler = new WindowHandler(this);
@@ -63,13 +70,62 @@ namespace ResizeAndConvertImages {
 
         private void winMain1_Loaded(object sender, RoutedEventArgs e) {
             LoadFileTypes(cboInputFileType);
-            cboInputFileType.SelectedValue = "jpg";
             LoadFileTypes(cboOutputFileType);
-            cboOutputFileType.SelectedValue = "jpg";
-            txtResizeAmount.Text = null;
-            txtQuality.Text = _ImageQuality.ToString();
             FolderSelector.Enabled = true;
+            StreamWriter _ErrorLogFile = new StreamWriter(_ErrorLog);
+            LoadSettings();
             _Ready = true;
+        }
+
+        private void LoadSettings() {
+            _ResizeAmount = (uint)Settings1.Default.Amount;
+            txtResizeAmount.Text = _ResizeAmount.ToString();
+
+            switch (Settings1.Default.ResizeType) {
+                case "None":
+                    rbNone.IsChecked = true;
+                    _ResizeRB = resizeRB.None;
+                    break;
+                case "Percentage":
+                    rbPercentage.IsChecked = true;
+                    _ResizeRB = resizeRB.Percentage;
+                    break;
+                case "Width":
+                    rbWidth.IsChecked = true;
+                    _ResizeRB = resizeRB.Width;
+                    break;
+                case "Height":
+                    rbHeight.IsChecked = true;
+                    _ResizeRB = resizeRB.Height;
+                    break;
+            }
+
+            _InputType = Settings1.Default.InputFileType;
+            cboInputFileType.SelectedValue = _InputType;
+
+            if (Settings1.Default.KeepInput) {
+                rbKeep.IsChecked = true;
+                _SourceRB = sourceRB.Keep;
+            }
+            else {
+                rbDelete.IsChecked = true;
+                _SourceRB = sourceRB.Delete;
+            }
+
+            string outputType = Settings1.Default.OutputFileType;
+            cboOutputFileType.SelectedValue = outputType;
+            _OutputType = OutputType(outputType);
+
+            _ImageQuality = (uint)Settings1.Default.Quality;
+            txtQuality.Text = _ImageQuality.ToString();
+
+            txtCopyRight.Text = Settings1.Default.CopyrightNotice.ToString();
+
+            chkSaveFolder.IsChecked = Settings1.Default.SaveElseWhere;
+
+            _OutputFolder = Settings1.Default.OutputFolder;
+            txtOutputFolder.Text = _OutputFolder;
+
         }
         private void btnSelectFolders_Click(object sender, RoutedEventArgs e) {
             var dialog = new OpenFileDialog {
@@ -85,19 +141,28 @@ namespace ResizeAndConvertImages {
                 _SourceFolders = dialog.FileNames.Select(Path.GetDirectoryName).Distinct().ToList();
             }
         }
+        private void FolderSelector_SelectedFoldersChanged(object sender, RoutedEventArgs e) {
 
-        private void FolderSelector_SelectedFoldersChanged(object sender, SelectedFoldersEventArgs e) {
-            _SourceFolders = e.Folders;
+        }
+        private void btnProcessFolders_Click(object sender, RoutedEventArgs e) {
+            //_SourceFolders = e.Folders;
             if (_SourceFolders.Count == 0) {
                 MessageBox.Show("No folders selected", "ERROR", MessageBoxButton.OK);
                 return;
             }
+
             if (ValidationSuccessful()) {
-                StreamWriter _ErrorLogFile = new StreamWriter(_ErrorLog);
+                _RootFolder = FolderSelector.RootFolder;
+                btnErrorLog.IsEnabled = false; ;
+                btnShowStats.IsEnabled = false; ;
                 ConvertAndOrResizeFiles(_SourceFolders);
-                _ErrorLogFile.Close();
-                _ErrorLogFile.Dispose();
+                btnErrorLog.IsEnabled = true;
+                btnShowStats.IsEnabled = true;
             }
+        }
+        private void FolderSelector_SelectedFoldersChanged(object sender, SelectedFoldersEventArgs e) {
+            _SourceFolders = e.Folders;
+            btnProcessFolders.IsEnabled = _SourceFolders.Count > 0;
         }
 
         private async void ConvertAndOrResizeFiles(List<string> folders) {
@@ -121,10 +186,11 @@ namespace ResizeAndConvertImages {
                 // Update the UI with the progress
                 progressBar.Value = value;
             });
-            
+            btnShowStats.IsEnabled = false;
+            btnErrorLog.IsEnabled = false;
 
             foreach (var folder in folders) {
-                var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.AllDirectories));
+                var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.TopDirectoryOnly));
                 int totalFiles = files.Count();
                 var folderName = new DirectoryInfo(folder).Name; // Just the parent folder name
                 this.Dispatcher.Invoke(() => folderLabel.Content = $"Processing: {folderName}");
@@ -135,14 +201,15 @@ namespace ResizeAndConvertImages {
                     ResizeType = _ResizeRB.ToString()
                 };
                 fileCount = 0;
-                await Task.Run(() => {
+                await System.Threading.Tasks.Task.Run(() => {
 
                     ((IProgress<int>)progress).Report(0);
-                    
 
-                    ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = (Environment.ProcessorCount * 2) / 3 }; // Use 2/3 the available cores
+
+                    // ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 1 }; // Use 2/3 the available cores
+                    ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = (Environment.ProcessorCount * 3) / 4 }; // Use 3/4 the available cores
                     Parallel.ForEach(files, parallelOptions, file => {
-                        string outputFile = GetOutputFolder(file, outputType);
+                        string outputFile = SetOutputFilePath(file, outputType);
 
                         using (var image = new MagickImage(file)) {
 
@@ -181,17 +248,26 @@ namespace ResizeAndConvertImages {
 
                 UpdateStats(startTime, totalBytesRead, totalBytesWritten, fileCount, folderStats);
 
-                // Add the stats to the collection for display
-                StatsCollection.Add(folderStats);
-
             }
             windowHandler.EndProcessing();
-            MessageBox.Show("Conversion/Resizing phase complete!");
-            if (_SourceRB == sourceRB.Delete) {
-                DeleteSourceFiles(folders, searchPatterns);
-            }
+
             // Ensure the progress bar is fully filled when the folder is done
             progressBar.Value = 100;
+
+            MessageBox.Show("Conversion/Resizing phase complete!");
+            if (_SourceRB == sourceRB.Delete) {
+                if (MessageBox.Show("Final chance to keep the input files. Keep them after all?",
+                                    "Check",
+                                    MessageBoxButton.YesNo,
+                                    MessageBoxImage.Question) == MessageBoxResult.Yes) {
+                    return;
+                }
+                DeleteSourceFiles(folders, searchPatterns);
+            }
+
+            progressBar.Value = 0;
+            btnShowStats.IsEnabled = true;
+            btnErrorLog.IsEnabled = true;
         }
 
         private void DeleteSourceFiles(List<string> folders, string[]? searchPatterns) {
@@ -200,8 +276,8 @@ namespace ResizeAndConvertImages {
 
             string outputType = _OutputType.ToString().ToLower();
             foreach (var folder in folders) {
-                var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.AllDirectories));
-                ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = (Environment.ProcessorCount * 2) / 3 }; // Use half the available cores
+                var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.TopDirectoryOnly));
+                ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = (Environment.ProcessorCount * 3) / 4 }; // Use 3/4 the available cores
                 Parallel.ForEach(files, parallelOptions, file => {
 
                     if (File.Exists(file)) {
@@ -209,7 +285,7 @@ namespace ResizeAndConvertImages {
                             File.Delete(file);
                         }
                         catch (Exception ex) {
-                            if (MessageBox.Show("Could not delete " + file + " because " + ex.Message + " Continue (Yes) or quit (No)?",
+                            if (MessageBox.Show("Could not delete " + file + " because " + ex.Message + " Continue (Yes) [recommended] or quit (No)?",
                                 "Error",
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Error) == MessageBoxResult.No) {
@@ -262,11 +338,11 @@ namespace ResizeAndConvertImages {
             folderStats.FilesProcessed = fileCount;
             folderStats.BytesRead = totalBytesRead;
             folderStats.BytesWritten = totalBytesWritten;
-            folderStats.AvgInputFileSize = totalBytesRead / (double)fileCount;
-            folderStats.AvgOutputFileSize = totalBytesWritten / (double)fileCount;
+            folderStats.AvgInputFileSize = fileCount == 0 ? 0 : totalBytesRead / fileCount;
+            folderStats.AvgOutputFileSize = fileCount == 0 ? 0 : totalBytesWritten / fileCount;
             folderStats.BytesSavedLost = totalBytesRead - totalBytesWritten;
-            folderStats.ElapsedTime = DateTime.Now - startTime;
-            folderStats.AvgTimePerFile = folderStats.ElapsedTime.TotalMilliseconds / fileCount;
+            folderStats.ElapsedTime = (int)(DateTime.Now - startTime).TotalSeconds;
+            folderStats.AvgTimePerFile = fileCount == 0 ? 0 : (long)(DateTime.Now - startTime).TotalMilliseconds / fileCount;
 
             // Add the stats to the collection for display
             StatsCollection.Add(folderStats);
@@ -279,7 +355,6 @@ namespace ResizeAndConvertImages {
                 "Error",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error) == MessageBoxResult.No) {
-                _ErrorLogFile.Close();
                 Application.Current.Shutdown();
             }
         }
@@ -323,13 +398,45 @@ namespace ResizeAndConvertImages {
             drawables.Draw(image);
         }
 
-        private string GetOutputFolder(string file, string outputType) {
+        private string SetOutputFilePath(string file, string outputType) {
             if (_OutputFolder != string.Empty) {
-                return _OutputFolder + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(file) + "." + _OutputType;
+                string outputFile = TransposeFilePath(_RootFolder, file, _OutputFolder);
+                string inputExt = Path.GetExtension(outputFile);
+                string outputExt = "." + _OutputType.ToString();
+                if (inputExt.ToLower() != outputExt.ToLower()) {
+                    outputFile = outputFile.Replace(inputExt, outputExt.ToLower());
+                }
+                return outputFile;
             }
             else {
                 return Path.Combine(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file)) + "." + _OutputType;
             }
+        }
+
+        private string TransposeFilePath(string rootFolder, string filePath, string outputFolder) {
+            // Convert to full paths to ensure we're working with absolute paths
+            rootFolder = Path.GetFullPath(rootFolder);
+            filePath = Path.GetFullPath(filePath);
+            outputFolder = Path.GetFullPath(outputFolder);
+
+            // Ensure the file path starts with the root folder
+            if (!filePath.StartsWith(rootFolder, StringComparison.OrdinalIgnoreCase)) {
+                throw new ArgumentException("The file path must be within the root folder.");
+            }
+
+            // Get the relative path from rootFolder to filePath
+            string relativePath = filePath.Substring(rootFolder.Length).TrimStart(Path.DirectorySeparatorChar);
+
+            // Construct the new path in the output folder
+            string newPath = Path.Combine(outputFolder, relativePath);
+
+            // Ensure all directories in the new path exist
+            string directoryPath = Path.GetDirectoryName(newPath);
+            if (!Directory.Exists(directoryPath)) {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            return newPath;
         }
 
         private void LoadFileTypes(ComboBox cboFileType) {
@@ -344,7 +451,7 @@ namespace ResizeAndConvertImages {
 
         private void txtQuality_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e) {
             if (e.Text.Length > 0) {
-                e.Handled = !int.TryParse(e.Text, out _);
+                e.Handled = !int.TryParse(e.Text, out int value);
             }
             e.Handled = false;
         }
@@ -361,7 +468,7 @@ namespace ResizeAndConvertImages {
         }
 
         private void txtResizeAmount_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) {
-            ValidationSuccessful();
+
         }
 
         private void SetResizeRB() {
@@ -382,10 +489,11 @@ namespace ResizeAndConvertImages {
             }
             if (_ResizeRB != resizeRB.None) {
                 if (!ValidDirectory(_OutputFolder)) {
-                    GetOutputFilePath();
+                    // Do we need a message here?
                 }
             }
-            ValidationSuccessful();
+            Settings1.Default.ResizeType = _ResizeRB.ToString();
+            Settings1.Default.Save();
         }
 
         private void rbNone_Click(object sender, RoutedEventArgs e) {
@@ -398,7 +506,8 @@ namespace ResizeAndConvertImages {
         private void rbPercentage_Click(object sender, RoutedEventArgs e) {
             SetResizeRB();
             txtResizeAmount.IsEnabled = true;
-            if (!ValidRange(txtResizeAmount.Text, 50, 100)) {
+            var result = ValidRange(txtResizeAmount.Text, 50, 100);
+            if (!result.valid) {
                 txtResizeAmount.Text = "";
                 _ResizeAmount = 0;
             }
@@ -420,8 +529,8 @@ namespace ResizeAndConvertImages {
 
         private void rbWidth_Click(object sender, RoutedEventArgs e) {
             SetResizeRB();
-            txtResizeAmount.IsEnabled = true;
-            if (!ValidRange(txtResizeAmount.Text, 16, 10000)) {
+            var result = ValidRange(txtResizeAmount.Text, 16, 1000);
+            if (!result.valid) {
                 txtResizeAmount.Text = "";
                 _ResizeAmount = 0;
             }
@@ -430,28 +539,34 @@ namespace ResizeAndConvertImages {
         private void rbHeight_Click(object sender, RoutedEventArgs e) {
             SetResizeRB();
             txtResizeAmount.IsEnabled = true;
-            if (!ValidRange(txtResizeAmount.Text, 16, 10000)) {
+            var result = ValidRange(txtResizeAmount.Text, 16, 1000);
+            if (!result.valid) {
                 txtResizeAmount.Text = "";
                 _ResizeAmount = 0;
             }
         }
 
         private void txtQuality_LostFocus(object sender, RoutedEventArgs e) {
-            if (int.TryParse(txtQuality.Text, out int value)) {
-                if (value < 1 || value > 100) {
-                    MessageBox.Show("Quality must be in range 50 to 100", "Error", MessageBoxButton.OK);
-                    txtQuality.Text = "";
-                    txtQuality.Focus();
-                }
-                _ImageQuality = (uint)value;
+            var result = ValidRange(txtQuality.Text, 50, 100);
+            if (result.valid) {
+                _ImageQuality = (uint)result.value;
+                Settings1.Default.Amount = result.value;
+                Settings1.Default.Save();
+            }
+            else {
+                txtQuality.Text = "";
+                txtQuality.Focus();
             }
         }
 
-        private bool ValidRange(string textValue, int lowerValue, int upperValue) {
+        private (int value, bool valid) ValidRange(string textValue, int lowerValue, int upperValue) {
             if (int.TryParse(textValue, out int value)) {
-                return value > lowerValue && value < upperValue;
+                if (value >= lowerValue && value <= upperValue) {
+                    return (value, true);
+                }
             }
-            return false;
+            MessageBox.Show("Value must be in range " + lowerValue.ToString() + " to " + upperValue.ToString(), "Error", MessageBoxButton.OK);
+            return (-1, false);
         }
         private void txtResizeAmount_LostFocus(object sender, RoutedEventArgs e) {
             int lowerValue = 0;
@@ -471,21 +586,20 @@ namespace ResizeAndConvertImages {
                     upperValue = 10000;
                     break;
             }
-            if (int.TryParse(txtResizeAmount.Text, out int value)) {
-                if (value < lowerValue || value > upperValue) {
-                    MessageBox.Show("Amount must be in range " + lowerValue.ToString() + " to " + upperValue.ToString(), "Error", MessageBoxButton.OK);
-                    txtResizeAmount.Text = "";
-                    txtResizeAmount.Focus();
-                    return;
-                }
-                _ResizeAmount = (uint)value;
-                if (!ValidDirectory(_OutputFolder)) {
-                    GetOutputFilePath();
-                }
-            }
-            ValidationSuccessful();
-        }
 
+            var result = ValidRange(txtResizeAmount.Text, lowerValue, upperValue);
+            if (result.valid) {
+                _ResizeAmount = (uint)result.value;
+                Settings1.Default.Amount = (int)result.value;
+                Settings1.Default.Save();
+            }
+            else {
+                _ResizeAmount = 0;
+                txtResizeAmount.Text = "";
+                txtResizeAmount.Focus();
+                return;
+            }
+        }
         private void SetSourceRB() {
             FolderSelector.Enabled = true;
 
@@ -493,9 +607,11 @@ namespace ResizeAndConvertImages {
                 _SourceRB = sourceRB.Delete; ;
             }
             else if (rbKeep.IsChecked == true) {
-                ValidationSuccessful();
                 _SourceRB = sourceRB.Keep;
+
             }
+            Settings1.Default.KeepInput = _SourceRB == sourceRB.Keep;
+            Settings1.Default.Save();
         }
 
         private bool ValidationSuccessful() {
@@ -505,21 +621,21 @@ namespace ResizeAndConvertImages {
             FolderSelector.Enabled = true;
             if (_OutputType.ToString().ToLower() == _InputType && txtOutputFolder.Text == string.Empty) {
                 MessageBox.Show("If the input and output file types are the same, you must select a separate output folder.", "Error", MessageBoxButton.OK);
-                FolderSelector.Enabled = false;
                 return false;
             }
             if ((_ResizeAmount ?? 0) == 0 && (_ResizeRB != resizeRB.None)) {
-                MessageBox.Show("You must specify a resize value unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
-                FolderSelector.Enabled = false;
+                MessageBox.Show("You must specify a resize value and an output path unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
                 return false;
             }
-            if ((_SourceRB == sourceRB.Delete) && (_ResizeRB != resizeRB.None)) {
+            if (!ValidDirectory(_OutputFolder) && (_ResizeRB != resizeRB.None)) {
+                MessageBox.Show("You must specify a resize value and an output path unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
+                return false;
+            }
+            if ((_SourceRB == sourceRB.Delete) && (_ResizeRB != resizeRB.None) && !ValidDirectory(_OutputFolder)) {
                 if (MessageBox.Show("You are deleting the input files and resizing the output files. If resizing makes the output files smaller, image quality will suffer. " +
                     "Are you certain you want to do this?", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No) {
-                    FolderSelector.IsEnabled = false;
                     return false;
                 }
-                FolderSelector.Enabled = true; ;
             }
             return true;
         }
@@ -539,46 +655,54 @@ namespace ResizeAndConvertImages {
             if (result == CommonFileDialogResult.Ok) {
                 _OutputFolder = dialog.FileName;
                 txtOutputFolder.Text = _OutputFolder;
+                Settings1.Default.OutputFolder = _OutputFolder;
+                Settings1.Default.Save();
             }
         }
 
+        private void ClearOutputFolder_Click(object sender, RoutedEventArgs e) {
+            txtOutputFolder.Text = string.Empty;
+            _OutputFolder = string.Empty;
+            Settings1.Default.OutputFolder = _OutputFolder;
+            Settings1.Default.Save();
+        }
         private void btnOutputFolder_Click(object sender, RoutedEventArgs e) {
             GetOutputFilePath();
         }
 
         private void chkSaveFolder_Click(object sender, RoutedEventArgs e) {
             btnOutputFolder.IsEnabled = chkSaveFolder.IsChecked.Value;
+            Settings1.Default.SaveElseWhere = chkSaveFolder.IsChecked.Value;
+            Settings1.Default.Save();
         }
 
         private void cboInputFileType_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             _InputType = ((ComboBox)sender).SelectedValue.ToString();
-            ValidationSuccessful();
+            Settings1.Default.InputFileType = _InputType;
+            Settings1.Default.Save();
         }
 
         private void cboOutputFileType_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             string outputType = ((ComboBox)sender).SelectedValue.ToString();
+            _OutputType = OutputType(outputType);
+            Settings1.Default.OutputFileType = outputType;
+            Settings1.Default.Save();
+        }
+
+        private MagickFormat OutputType(string outputType) {
             switch (outputType) {
                 case "bmp":
-                    _OutputType = MagickFormat.Bmp;
-                    break;
+                    return MagickFormat.Bmp;
                 case "gif":
-                    _OutputType = MagickFormat.Gif;
-                    break;
-                case "jpeg":
-                case "jpg":
-                    _OutputType = MagickFormat.Jpg;
-                    break;
+                    return MagickFormat.Gif;
                 case "png":
-                    _OutputType = MagickFormat.Png;
-                    break;
+                    return MagickFormat.Png;
                 case "tiff":
-                    _OutputType = MagickFormat.Tiff;
-                    break;
+                    return MagickFormat.Tiff;
                 case "webp":
-                    _OutputType = MagickFormat.WebP;
-                    break;
+                    return MagickFormat.WebP;
             }
-            ValidationSuccessful();
+            return MagickFormat.Jpg;
         }
 
         private void ShowStats_Click(object sender, RoutedEventArgs e) {
@@ -616,11 +740,34 @@ namespace ResizeAndConvertImages {
         private void CloseErrorLog_Click(Object sender, RoutedEventArgs e) {
             ErrorLogPopup.IsOpen = false;
         }
+
+        private void btnHelp_Click(object sender, RoutedEventArgs e) {
+            Help.IsOpen = true;
+        }
+
+        private void btnCloseHelp_Click(object sender, RoutedEventArgs e) {
+            Help.IsOpen = false;
+        }
+
+        private void winMain1_Unloaded(object sender, RoutedEventArgs e) {
+            _ErrorLogFile.Close();
+            _ErrorLogFile.Dispose();
+        }
+
+        private void txtCopyRight_LostFocus(object sender, RoutedEventArgs e) {
+            Settings1.Default.CopyrightNotice = txtCopyRight.Text;
+            Settings1.Default.Save();
+        }
+
+        private void chkFileName_LostFocus(object sender, RoutedEventArgs e) {
+            Settings1.Default.AddFileName = (bool)chkFileName.IsChecked;
+            Settings1.Default.Save();
+        }
     }
     public class ByteToMBConverter : IValueConverter {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
             if (value is long byteCount) {
-                return (byteCount / (1024.0 * 1024.0)).ToString("F2", CultureInfo.CurrentCulture); // F2 formats to 2 decimal places
+                return (byteCount / (1024 * 1024)).ToString("N0", CultureInfo.CurrentCulture);
             }
             return "0";
         }
@@ -632,8 +779,8 @@ namespace ResizeAndConvertImages {
 
     public class ByteToKBConverter : IValueConverter {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
-            if (value is double byteCount) {
-                return (byteCount / 1024.0).ToString("F2", CultureInfo.CurrentCulture); // F2 formats to 2 decimal places
+            if (value is long byteCount) {
+                return (byteCount / 1024).ToString("N0", CultureInfo.CurrentCulture);
             }
             return "0";
         }
@@ -661,12 +808,12 @@ namespace ResizeAndConvertImages {
         public string ResizeType { get; set; }
         public int FilesProcessed { get; set; }
         public long BytesRead { get; set; } // In bytes, can be converted to MB for display
-        public double AvgInputFileSize { get; set; } // In bytes, can be converted to KB for display
+        public long AvgInputFileSize { get; set; } // In bytes, can be converted to KB for display
         public long BytesWritten { get; set; }
-        public double AvgOutputFileSize { get; set; }
-        public double BytesSavedLost { get; set; } // In bytes, can be converted to MB and percentage
-        public TimeSpan ElapsedTime { get; set; }
-        public double AvgTimePerFile { get; set; } // In milliseconds
+        public long AvgOutputFileSize { get; set; }
+        public long BytesSavedLost { get; set; } // In bytes, can be converted to MB and percentage
+        public int ElapsedTime { get; set; }
+        public long AvgTimePerFile { get; set; } // In milliseconds
     }
     public class WindowHandler {
         private Window window;

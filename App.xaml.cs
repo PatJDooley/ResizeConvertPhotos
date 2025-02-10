@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace ResizeAndConvertImages
+namespace ConvertFoldersToWebP
 {
     /// <summary>
     /// Interaction logic for App.xaml
