@@ -11,237 +11,226 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="600" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Label Content="Image File Converter and Resizer" Grid.Column="0" Style="{StaticResource HeaderStyle}"  HorizontalAlignment="Center" VerticalAlignment="Top" />
-                <Button x:Name="btnHelp" Content="?"  Grid.Column="1" Click="btnHelp_Click"
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="600" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Label Content="C R I M P" Grid.Column="0" Grid.Row="0" Style="{StaticResource HeaderStyle}"  HorizontalAlignment="Center" VerticalAlignment="Top" />
+            <Button x:Name="btnHelp" Content="?"  Grid.Column="1" Grid.Row="0" Click="btnHelp_Click"
                 Style="{StaticResource ButtonTextStyle}" HorizontalAlignment="Right" Margin="5,2,5,0" Width="30" Height="30" FontWeight="ExtraBold" FontSize="16"/>
-            </Grid>
-        </StackPanel>
-        <GroupBox Header="Resize Options" Grid.Row="2" Margin="5,0,5,10" Width="Auto">
-            <StackPanel Orientation="Vertical" Margin="5">
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <Label Content="Amount:" Height="24" Width="100" VerticalAlignment="Top"/>
-                    <TextBox Width="60" Name="txtResizeAmount" Height = "24" VerticalAlignment="Top" PreviewTextInput="txtResizeAmount_PreviewTextInput" 
-                                    TextChanged="txtResizeAmount_TextChanged" LostFocus="txtResizeAmount_LostFocus" VerticalContentAlignment="Center"/>
-                </StackPanel>
-                <RadioButton x:Name="rbNone" GroupName="resize" Margin="10,2,0,2" Click="rbNone_Click" IsChecked="True">None</RadioButton>
-                <RadioButton x:Name="rbPercentage" GroupName="resize" Margin="10,2,0,2" Click="rbPercentage_Click">Percentage</RadioButton>
-                <RadioButton x:Name="rbWidth" GroupName="resize" Margin="10,2,0,2" Click="rbWidth_Click">Width</RadioButton>
-                <RadioButton x:Name="rbHeight" GroupName="resize" Margin="10,2,0,2" Click="rbHeight_Click">Height</RadioButton>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Input File" Grid.Row="3" Margin="5,0,5,10"  Width="Auto">
-            <StackPanel Orientation="Vertical" Margin="5">
-                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
-                    <Label Content="Select File Type:" Height = "24" Width="105" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cboInputFileType" HorizontalAlignment="Left" Height="24" Width="60" VerticalAlignment="Top" SelectionChanged="cboInputFileType_SelectionChanged"/>
-                </StackPanel>
-                <RadioButton x:Name="rbKeep" GroupName="sourcefile" Margin="10,2,0,2" Click="rbKeep_Click" IsChecked="False">Keep</RadioButton>
-                <RadioButton x:Name="rbDelete" GroupName="sourcefile" Margin="10,2,0,2" Click="rbDelete_Click" IsChecked="True">Delete</RadioButton>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Output File" Grid.Row="4" Margin="5,0,5,0"  Width="Auto">
-            <StackPanel Orientation="Vertical" Margin="5"  Grid.Row="2">
-                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
-                    <Label Content="Select File Type:" Height="24" Width="105" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cboOutputFileType" HorizontalAlignment="Left" Height="24" Width="60" VerticalAlignment="Top" SelectionChanged="cboOutputFileType_SelectionChanged"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
-                    <Label Content="Quality:" Height = "24" Width="105" VerticalAlignment="Top"/>
-                    <TextBox Width="60" Name="txtQuality" Height = "24" VerticalAlignment="Top" 
-                             VerticalContentAlignment="Center" PreviewTextInput="txtQuality_PreviewTextInput" LostFocus="txtQuality_LostFocus"/>
-                </StackPanel>
-                <StackPanel Orientation="Vertical" Margin="5,5,0,0">
-                    <Label Content="Copyright Notice:" Height="24" Width="105" VerticalAlignment="Top" HorizontalAlignment="Left" />
-                    <TextBox Width="200" Name="txtCopyRight" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" VerticalContentAlignment="Center" Text="©" LostFocus="txtCopyRight_LostFocus" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
-                    <CheckBox x:Name="chkFileName" Content="Add filename to image" LostFocus="chkFileName_LostFocus" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
-                    <CheckBox x:Name="chkSaveFolder" Content="Save Elsewhere" Click="chkSaveFolder_Click" />
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-        <local:FolderSelector x:Name="FolderSelector"  Grid.Column="1" Grid.Row="1" Grid.RowSpan="4" Margin="5,0,10,0" Width="400" SelectedFoldersChanged="FolderSelector_SelectedFoldersChanged" />
-        <StackPanel Orientation="Vertical" Grid.Row="5" Grid.ColumnSpan="2">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Button x:Name="btnOutputFolder" Grid.Column="0" Content="Output Folder" IsEnabled="True" 
-                        Margin="10, 0" Padding="5" HorizontalAlignment="Left" 
-                        Style="{StaticResource ButtonTextStyle}"
-                        ToolTip="Select folder for Output Files. Right-click dialog if new location required" Click="btnOutputFolder_Click" />
-                <Grid Grid.Column="1">
-                    <TextBox Name="txtOutputFolder" Height="30" Margin="0,5,10,5" 
-                    IsReadOnly="true"  TextWrapping="Wrap" VerticalAlignment="Top" VerticalContentAlignment="Center" />
-                    <Button Content="X" HorizontalAlignment="Right" VerticalAlignment="Center" 
-                            Width="20" Height="20" Margin="0,0,10,0" Click="ClearOutputFolder_Click" 
-                            Style="{StaticResource ClearButtonStyle}" />
-                </Grid>
-            </Grid>
-            <Grid Margin="10,5,10,5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="143" />
-                    <ColumnDefinition Width="143" />
-                    <ColumnDefinition Width="143" />
-                </Grid.ColumnDefinitions>
-                <Button x:Name="btnProcessFolders" Content="Process Folders" Grid.Column="1" IsEnabled="False"
-                Style="{StaticResource ButtonTextStyle}" HorizontalAlignment="Right" Width="160" Click="btnProcessFolders_Click" />
-                <Button x:Name="btnShowStats" Content="Show Stats" Click="ShowStats_Click" Grid.Column="2"  IsEnabled="False"
-                Style="{StaticResource ButtonTextStyle}" HorizontalAlignment="Right" Width="160" />
-                <Button x:Name="btnErrorLog" Content="Error Log"  Click="btnErrorLog_Click" Grid.Column="3"  IsEnabled="False"
-                Style="{StaticResource ButtonTextStyle}" HorizontalAlignment="Right"  Width="160" />
-            </Grid>
-            <Grid Margin="10,5,10,5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Label x:Name="folderLabel" Content="Processing..."  Grid.Column="0"  Height="30" VerticalAlignment="Top" FontSize="14"/>
-                <ProgressBar x:Name="progressBar"  Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="30" Width="Auto"/>
-            </Grid>
-
-        </StackPanel>
-
-        <!-- Popup for Stats -->
-        <Popup x:Name="StatsPopup" PlacementTarget="{Binding ElementName=winMain1}" 
-               Placement="Center" AllowsTransparency="True" IsOpen="False" MaxWidth="720" MaxHeight="600" >
-            <Border Background="#EBF5FB" BorderBrush="Black" BorderThickness="1" CornerRadius="5" Padding="0" >
-                <Grid x:Name="StatsMain" Style="{StaticResource Gradient}">
-                    <Grid Width="700">
+            <Label Content="Convert and Resize IMages Processor" Grid.Column="0" Grid.Row="1" Style="{StaticResource HeaderStyle}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Top" />
+        </Grid>
+        <Grid Grid.Row="1">
+            <TabControl Margin="5">
+                <TabControl.Resources>
+                    <Style TargetType="{x:Type TabItem}">
+                        <Style.Triggers>
+                            <!--<Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#C6E6F5"/>
+                            </Trigger>-->
+                            <Trigger Property="IsSelected" Value="False">
+                                <Setter Property="Background" Value="#C6E6F5"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabControl.Resources>
+                <TabItem Header="Process Folders" Background="#C6E6F5" >
+                    <Grid  Style="{StaticResource Gradient}">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button Content="Save Stats to CSV" Click="SaveStatsToCSV_Click" Style="{StaticResource ButtonTextStyle}" 
-                                    Width="150" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" Margin="0,10,10,10"/>
-                        <Button Content="Close" Click="CloseStats_Click" Style="{StaticResource ButtonTextStyle}" 
-                                     Width="150" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Left" Margin="10,10,0,10"/>
-                        <DataGrid x:Name="StatsGrid" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" AutoGenerateColumns="False" Margin="0" Padding="2" ColumnHeaderHeight="80"
-                                  HorizontalScrollBarVisibility="Disabled" RowHeaderWidth="0" CanUserAddRows="False">
-                            <DataGrid.Resources>
-                                <Style x:Key="ColumnHeaderStyle" TargetType="DataGridColumnHeader">
-                                    <Setter Property="Margin" Value="0" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="MinHeight" Value="50"/>
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="80" Padding="4,0,2,0" />
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="BorderThickness" Value="1" />
-                                    <Setter Property="BorderBrush" Value="Black" />
-                                    <Setter Property="Background">
-                                        <Setter.Value>
-                                            <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-                                                <GradientStop Color="#AED6F1" Offset="1"/>
-                                                <GradientStop Color="#EBF5FB" Offset="0"/>
-                                            </LinearGradientBrush>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                                <Style x:Key="CellStyle" TargetType="DataGridCell">
-                                    <Setter Property="Margin" Value="0" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="MinHeight" Value="24"/>
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Path=FolderName}" TextAlignment="Left" Padding="4,0,2,0" />
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="BorderThickness" Value="1" />
-                                    <Setter Property="BorderBrush" Value="Black" />
-                                </Style>
-                            </DataGrid.Resources>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Folder Name" Binding="{Binding FolderName}" 
+                        <GroupBox Header="Resize Options" Grid.Row="2" Margin="5,0,5,10" Width="Auto" >
+                            <StackPanel Orientation="Vertical" Margin="5">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Label Content="Amount:" Height="24" Width="100" VerticalAlignment="Top"/>
+                                    <TextBox Width="60" Name="txtResizeAmount" Height = "24" VerticalAlignment="Top" PreviewTextInput="txtResizeAmount_PreviewTextInput" LostFocus="txtResizeAmount_LostFocus" VerticalContentAlignment="Center"/>
+                                </StackPanel>
+                                <RadioButton x:Name="rbNone" GroupName="resize" Margin="10,2,0,2" Click="rbNone_Click" IsChecked="True">None</RadioButton>
+                                <RadioButton x:Name="rbPercentage" GroupName="resize" Margin="10,2,0,2" Click="rbPercentage_Click">Percentage</RadioButton>
+                                <RadioButton x:Name="rbWidth" GroupName="resize" Margin="10,2,0,2" Click="rbWidth_Click">Width</RadioButton>
+                                <RadioButton x:Name="rbHeight" GroupName="resize" Margin="10,2,0,2" Click="rbHeight_Click">Height</RadioButton>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Input File" Grid.Row="3" Margin="5,0,5,10"  Width="Auto">
+                            <StackPanel Orientation="Vertical" Margin="5">
+                                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
+                                    <Label Content="Select File Type:" Height = "24" Width="105" VerticalAlignment="Top"/>
+                                    <ComboBox x:Name="cboInputFileType" HorizontalAlignment="Left" Height="24" Width="60" VerticalAlignment="Top" SelectionChanged="cboInputFileType_SelectionChanged"/>
+                                </StackPanel>
+                                <RadioButton x:Name="rbKeep" GroupName="sourcefile" Margin="10,2,0,2" Click="rbKeep_Click" IsChecked="False">Keep</RadioButton>
+                                <RadioButton x:Name="rbDelete" GroupName="sourcefile" Margin="10,2,0,2" Click="rbDelete_Click" IsChecked="True">Delete after copying</RadioButton>
+                                <RadioButton x:Name="rbDeleteOnly" GroupName="sourcefile" Margin="10,2,0,2" Click="rbDeleteOnly_Click" IsChecked="False">Delete without copying</RadioButton>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Output File" Grid.Row="4" Margin="5,0,5,0"  Width="Auto">
+                            <StackPanel Orientation="Vertical" Margin="5"  Grid.Row="2">
+                                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
+                                    <Label Content="Select File Type:" Height="24" Width="105" VerticalAlignment="Top"/>
+                                    <ComboBox x:Name="cboOutputFileType" HorizontalAlignment="Left" Height="24" Width="60" VerticalAlignment="Top" SelectionChanged="cboOutputFileType_SelectionChanged"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
+                                    <Label Content="Quality:" Height = "24" Width="105" VerticalAlignment="Top"/>
+                                    <TextBox Width="60" Name="txtQuality" Height = "24" VerticalAlignment="Top" 
+                                            VerticalContentAlignment="Center" PreviewTextInput="txtQuality_PreviewTextInput" LostFocus="txtQuality_LostFocus"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Vertical" Margin="5,5,0,0">
+                                    <Label Content="Copyright Notice:" Height="24" Width="105" VerticalAlignment="Top" HorizontalAlignment="Left" />
+                                    <TextBox Width="200" Name="txtCopyRight" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" VerticalContentAlignment="Center" Text="©" LostFocus="txtCopyRight_LostFocus" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
+                                    <CheckBox x:Name="chkFileName" Content="Add filename to image" LostFocus="chkFileName_LostFocus" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
+                                    <CheckBox x:Name="chkSaveFolder" Content="Save Elsewhere" Click="chkSaveFolder_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        <local:FolderSelector x:Name="FolderSelector"  Grid.Column="1" Grid.Row="1" Grid.RowSpan="4" Margin="5,0,10,0" Width="400" />
+                        <StackPanel Orientation="Vertical" Grid.Row="5" Grid.ColumnSpan="2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="btnOutputFolder" Grid.Column="0" Content="Output Folder" IsEnabled="True" 
+                                        Margin="10, 0" Padding="5" HorizontalAlignment="Left" Width="100"
+                                        Style="{StaticResource ButtonTextStyle}"
+                                        ToolTip="Select folder for Output Files. Right-click dialog if new location required" Click="btnOutputFolder_Click" />
+                                <Grid Grid.Column="1">
+                                    <TextBox Name="txtOutputFolder" Height="30" Margin="0,5,10,5" 
+                                             IsReadOnly="true"  TextWrapping="Wrap" VerticalAlignment="Top" VerticalContentAlignment="Center" TextChanged="txtOutputFolder_TextChanged" />
+                                    <Button Content="X" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                                            Width="20" Height="20" Margin="0,0,10,0" Click="ClearOutputFolder_Click" 
+                                            Style="{StaticResource ClearButtonStyle}" />
+                                </Grid>
+                            </Grid>
+
+                            <Grid Margin="10,5,10,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Label x:Name="folderLabel" Content="Processing..."  Grid.Column="0"  Height="30" VerticalAlignment="Top" FontSize="14"/>
+                                <ProgressBar x:Name="progressBar"  Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="30" Width="Auto"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Statistics">
+                    <Grid x:Name="StatsMain" Style="{StaticResource Gradient}">
+                        <Grid Width="800">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="Save Stats to CSV" Click="SaveStatsToCSV_Click" Style="{StaticResource ButtonTextStyle}" 
+                                    Width="150" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" HorizontalAlignment="Center" Margin="0,10,0,10"/>
+                            <DataGrid x:Name="StatsGrid" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" AutoGenerateColumns="False" Margin="0" Padding="2" ColumnHeaderHeight="80"
+                                  HorizontalScrollBarVisibility="Disabled" RowHeaderWidth="0" CanUserAddRows="False" FontSize="10">
+                                <DataGrid.Resources>
+                                    <Style x:Key="ColumnHeaderStyle" TargetType="DataGridColumnHeader">
+                                        <Setter Property="Margin" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="MinHeight" Value="50"/>
+                                        <Setter Property="ContentTemplate">
+                                            <Setter.Value>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="80" Padding="4,0,2,0" />
+                                                </DataTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="Black" />
+                                        <Setter Property="Background">
+                                            <Setter.Value>
+                                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                                    <GradientStop Color="#AED6F1" Offset="1"/>
+                                                    <GradientStop Color="#EBF5FB" Offset="0"/>
+                                                </LinearGradientBrush>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                    <Style x:Key="CellStyle" TargetType="DataGridCell">
+                                        <Setter Property="Margin" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="MinHeight" Value="24"/>
+                                        <Setter Property="ContentTemplate">
+                                            <Setter.Value>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Path=FolderName}" TextAlignment="Left" Padding="4,0,2,0" />
+                                                </DataTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="Black" />
+                                    </Style>
+                                </DataGrid.Resources>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Folder Name" Binding="{Binding FolderName}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" 
                                                     CellStyle="{StaticResource CellStyle}" Width="80" />
-                                <DataGridTextColumn Header="Input File Type" Binding="{Binding InputFileType}" 
+                                    <DataGridTextColumn Header="Input File Type" Binding="{Binding InputFileType}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*" />
-                                <DataGridTextColumn Header="Output File Type" Binding="{Binding OutputFileType}" 
+                                    <DataGridTextColumn Header="Output File Type" Binding="{Binding OutputFileType}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*" />
-                                <DataGridTextColumn Header="Resize Type" Binding="{Binding ResizeType}" 
+                                    <DataGridTextColumn Header="Resize Type" Binding="{Binding ResizeType}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*" />
-                                <DataGridTextColumn Header="Number of Files" Binding="{Binding FilesProcessed}" 
+                                    <DataGridTextColumn Header="Number of Files" Binding="{Binding FilesProcessed}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Bytes Read (mb)" Binding="{Binding BytesRead, Converter={StaticResource ByteToMBConverter}}" 
+                                    <DataGridTextColumn Header="Megabytes Read" Binding="{Binding BytesRead, Converter={StaticResource ByteToMBConverter}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Avg Input Size (kb)" Binding="{Binding AvgInputFileSize, Converter={StaticResource ByteToKBConverter}}" 
+                                    <DataGridTextColumn Header="Avg Input Size (kb)" Binding="{Binding AvgInputFileSize, Converter={StaticResource ByteToKBConverter}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Bytes Written (mb)" Binding="{Binding BytesWritten, Converter={StaticResource ByteToMBConverter}}" 
+                                    <DataGridTextColumn Header="Megabytes Written" Binding="{Binding BytesWritten, Converter={StaticResource ByteToMBConverter}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Avg Output Size (kb)" Binding="{Binding AvgOutputFileSize, Converter={StaticResource ByteToKBConverter}}" 
+                                    <DataGridTextColumn Header="Avg Output Size (kb)" Binding="{Binding AvgOutputFileSize, Converter={StaticResource ByteToKBConverter}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Bytes Saved/Lost (mb)" Binding="{Binding BytesSavedLost, Converter={StaticResource ByteToMBConverter}}" 
+                                    <DataGridTextColumn Header="Megabytes Saved/Lost" Binding="{Binding BytesSavedLost, Converter={StaticResource ByteToMBConverter}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Time Taken" Binding="{Binding ElapsedTime, StringFormat={}{0:N0}}" 
+                                    <DataGridTextColumn Header="Time Taken" Binding="{Binding ElapsedTime, StringFormat={}{0:N0}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                                <DataGridTextColumn Header="Avg Time per File (ms)" Binding="{Binding AvgTimePerFile, StringFormat={}{0:N0}}" 
+                                    <DataGridTextColumn Header="Milliseconds per File" Binding="{Binding AvgTimePerFile, StringFormat={}{0:N0}}" 
                                                     HeaderStyle="{StaticResource ColumnHeaderStyle}" Width="*"  
                                                     CellStyle="{StaticResource NumericCellStyle}" />
-                            </DataGrid.Columns>
-                        </DataGrid>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
                     </Grid>
-                </Grid>
-            </Border>
-        </Popup>
-
-        <!-- Popup for Errorlog -->
-        <Popup x:Name="ErrorLogPopup" PlacementTarget="{Binding ElementName=winMain1}" 
-            Placement="Center" AllowsTransparency="True" IsOpen="False" MaxWidth="720" MaxHeight="425" Style="{StaticResource Gradient}" >
-            <Border Background="#EBF5FB" BorderBrush="Black" BorderThickness="1" CornerRadius="5" Padding="5" >
-                <StackPanel Orientation="Vertical" Margin="5"  Style="{StaticResource Gradient}" >
-                    <Label Content="Error Log" Style="{StaticResource HeaderStyle}" />
-                    <ListBox x:Name="lstErrorLog" />
-                    <Button x:Name="btnCloseErrorLog" Content="Close" Click="CloseErrorLog_Click" Style="{StaticResource ButtonTextStyle}" />
-                </StackPanel>
-            </Border>
-        </Popup>
-
-        <Popup x:Name="Help" PlacementTarget="{Binding ElementName=winMain1}" 
-       Placement="Center" AllowsTransparency="True" IsOpen="False" MaxWidth="720" MaxHeight="600" >
-            <Border Background="#EBF5FB" BorderBrush="Black" BorderThickness="1" CornerRadius="5" Padding="5" >
-                <Grid x:Name="Content" >
-                    <StackPanel Orientation="Vertical" Margin="5"  Style="{StaticResource Gradient}" >
-                        <Label Content="HELP" Style="{StaticResource HeaderStyle}" />
-                        <Button x:Name="btnCloseHelp" Content="Close" Click="btnCloseHelp_Click" Style="{StaticResource ButtonTextStyle}" />
+                </TabItem>
+                <TabItem Header="Error Log">
+                    <StackPanel Orientation="Vertical" Margin="5"  Style="{StaticResource Gradient}" Height="64">
+                        <ListBox x:Name="lstErrorLog" FontSize="14">
+                            <ListBoxItem>No Errors listed</ListBoxItem>
+                        </ListBox>
                     </StackPanel>
-                </Grid>
-            </Border>
-        </Popup>
+                </TabItem>
+            </TabControl>
+        </Grid>
     </Grid>
 </Window>

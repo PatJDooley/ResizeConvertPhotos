@@ -6,7 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="400" d:DesignWidth="600">
-    <GroupBox Header="Folder Selector" Padding="5">
+    <GroupBox Header="Folder Selection" Padding="5">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -19,18 +19,18 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Button x:Name="BrowseButton" Grid.Row="0" Grid.Column="0"  HorizontalAlignment="Left" Width="100" 
+        <Button x:Name="BrowseButton" Grid.Row="0" Grid.Column="0"  HorizontalAlignment="Left" Width="96" 
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Select Folders" Click="BrowseButton_Click" />
-        <Button x:Name="CheckAll" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Center" Width="100" 
+        <Button x:Name="CheckAll" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Center" Width="96" 
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Check All"  
                 IsEnabled="False" Click="CheckAll_Click"/>
-        <Button x:Name="ClearChecks" Grid.Row="0" Grid.Column="2"  HorizontalAlignment="Center" Width="100" 
+        <Button x:Name="ClearChecks" Grid.Row="0" Grid.Column="2"  HorizontalAlignment="Center" Width="96" 
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Clear Checks" 
                 IsEnabled="False" Click="ClearChecks_Click"/>
-        <Button x:Name="OK" Grid.Row="0" Grid.Column="3"  HorizontalAlignment="Right" Width="100" 
+        <Button x:Name="OK" Grid.Row="0" Grid.Column="3"  HorizontalAlignment="Right" Width="96" 
                 Style="{StaticResource ButtonTextStyle}"
                 Content="OK" 
                 IsEnabled="False" Click="OK_Click"/>        

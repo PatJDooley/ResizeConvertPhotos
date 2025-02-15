@@ -11,7 +11,8 @@ using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
 
 namespace ConvertFoldersToWebP {
-    public partial class FolderSelector : UserControl {
+    public partial class FolderSelector : System.Windows.Controls.UserControl {
+
         public FolderSelector() {
             InitializeComponent();
         }
@@ -88,7 +89,7 @@ namespace ConvertFoldersToWebP {
             }
             CheckAll.IsEnabled = false;
             ClearChecks.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
-            OK_Click(sender, e);
+            // OK_Click(sender, e);
         }
 
         private void ClearChecks_Click(object sender, RoutedEventArgs e) {
@@ -97,7 +98,7 @@ namespace ConvertFoldersToWebP {
             }
             CheckAll.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
             ClearChecks.IsEnabled = false;
-            OK_Click(sender, e);
+            // OK_Click(sender, e);
 
         }
 
@@ -111,6 +112,7 @@ namespace ConvertFoldersToWebP {
         }
 
         private void OK_Click(object sender, RoutedEventArgs e) {
+            e.Handled = true; // Stops event from bubbling further
             var selectedFolders = GetSelectedFolders(FolderTreeView.Items.Cast<FolderItem>());
             SelectedFoldersChanged?.Invoke(this, new SelectedFoldersEventArgs(selectedFolders));
         }

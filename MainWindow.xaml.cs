@@ -1,14 +1,12 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Controls;
-using System.Windows.Media.Effects;
 using System.Diagnostics;
 using Microsoft.Win32;
 using ImageMagick;
@@ -17,14 +15,9 @@ using static ConvertFoldersToWebP.FolderSelector;
 using static ConvertFoldersToWebP.Settings1;
 using ImageMagick.Drawing;
 using System.Collections.ObjectModel;
-using System.Formats.Asn1;
 using System.Globalization;
 using CsvHelper;
-using Microsoft.VisualBasic;
-using System.Diagnostics.Eventing.Reader;
-using System.Runtime.InteropServices;
-using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties.System;
-using System.Security.Policy;
+using System.Reflection;
 
 namespace ConvertFoldersToWebP {
     public partial class MainWindow : Window {
@@ -33,7 +26,6 @@ namespace ConvertFoldersToWebP {
         string _RootFolder = string.Empty;
         List<string> _SourceFolders = new List<string>();
         List<string> _SelectedFolders = new List<string>();
-        public string _ErrorLog = Path.Combine(Path.GetTempPath(), "Error_Log_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".txt");
         StreamWriter _ErrorLogFile;
         public List<string> _Errors = new List<string>();
 
@@ -56,7 +48,8 @@ namespace ConvertFoldersToWebP {
 
         private enum sourceRB {
             Keep,
-            Delete
+            Delete,
+            DeleteOnly
         }
         sourceRB _SourceRB = sourceRB.Delete;
 
@@ -65,16 +58,24 @@ namespace ConvertFoldersToWebP {
             windowHandler = new WindowHandler(this);
             FolderSelector.SelectedFoldersChanged += FolderSelector_SelectedFoldersChanged;
             StatsCollection = new ObservableCollection<FolderStats>();
-            // StatsGrid.ItemsSource = StatsCollection;
+            StatsGrid.ItemsSource = StatsCollection;
         }
 
         private void winMain1_Loaded(object sender, RoutedEventArgs e) {
             LoadFileTypes(cboInputFileType);
             LoadFileTypes(cboOutputFileType);
             FolderSelector.Enabled = true;
-            StreamWriter _ErrorLogFile = new StreamWriter(_ErrorLog);
             LoadSettings();
+            _ErrorLogFile = new StreamWriter(Path.Combine(Path.GetTempPath(), "Error_Log_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".txt"));
+            _Errors.Clear();
             _Ready = true;
+        }
+
+        private string GetExePath() {
+            string exePath = Assembly.GetExecutingAssembly().Location;
+
+            // Extract the directory from the path
+            return Path.GetDirectoryName(exePath);
         }
 
         private void LoadSettings() {
@@ -128,7 +129,7 @@ namespace ConvertFoldersToWebP {
 
         }
         private void btnSelectFolders_Click(object sender, RoutedEventArgs e) {
-            var dialog = new OpenFileDialog {
+            var dialog = new Microsoft.Win32.OpenFileDialog {
                 // Allow selecting folders instead of files
                 ValidateNames = false,
                 CheckFileExists = false,
@@ -141,31 +142,32 @@ namespace ConvertFoldersToWebP {
                 _SourceFolders = dialog.FileNames.Select(Path.GetDirectoryName).Distinct().ToList();
             }
         }
-        private void FolderSelector_SelectedFoldersChanged(object sender, RoutedEventArgs e) {
+        //private void FolderSelector_SelectedFoldersChanged(object sender, RoutedEventArgs e) {
 
-        }
-        private void btnProcessFolders_Click(object sender, RoutedEventArgs e) {
-            //_SourceFolders = e.Folders;
+        //}
+        private void FolderSelector_SelectedFoldersChanged(object sender, SelectedFoldersEventArgs e) {
+            _SourceFolders = e.Folders;
             if (_SourceFolders.Count == 0) {
-                MessageBox.Show("No folders selected", "ERROR", MessageBoxButton.OK);
+                System.Windows.MessageBox.Show("No folders selected", "ERROR", MessageBoxButton.OK);
                 return;
+            }
+
+            if (_SourceRB == sourceRB.DeleteOnly) {
+                if (System.Windows.MessageBox.Show("You have chosen to delete every " + _InputType + " file in the checked folders. This is your final chance to keep the input files. Click \"Yes\" Keep them after all. Click \"No\" to say goodbye to them.",
+                    "Check",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) == MessageBoxResult.Yes) {
+                    return;
+                }
             }
 
             if (ValidationSuccessful()) {
                 _RootFolder = FolderSelector.RootFolder;
-                btnErrorLog.IsEnabled = false; ;
-                btnShowStats.IsEnabled = false; ;
-                ConvertAndOrResizeFiles(_SourceFolders);
-                btnErrorLog.IsEnabled = true;
-                btnShowStats.IsEnabled = true;
+                ConvertResizeDelete(_SourceFolders);
             }
         }
-        private void FolderSelector_SelectedFoldersChanged(object sender, SelectedFoldersEventArgs e) {
-            _SourceFolders = e.Folders;
-            btnProcessFolders.IsEnabled = _SourceFolders.Count > 0;
-        }
 
-        private async void ConvertAndOrResizeFiles(List<string> folders) {
+        private async void ConvertResizeDelete(List<string> folders) {
             windowHandler.StartProcessing();
 
             uint newWidth = _ResizeAmount == null ? 0 : _ResizeAmount.Value;
@@ -186,94 +188,98 @@ namespace ConvertFoldersToWebP {
                 // Update the UI with the progress
                 progressBar.Value = value;
             });
-            btnShowStats.IsEnabled = false;
-            btnErrorLog.IsEnabled = false;
 
-            foreach (var folder in folders) {
-                var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.TopDirectoryOnly));
-                int totalFiles = files.Count();
-                var folderName = new DirectoryInfo(folder).Name; // Just the parent folder name
-                this.Dispatcher.Invoke(() => folderLabel.Content = $"Processing: {folderName}");
-                var folderStats = new FolderStats {
-                    FolderName = folder,
-                    InputFileType = _InputType.ToString(),
-                    OutputFileType = _OutputType.ToString(),
-                    ResizeType = _ResizeRB.ToString()
-                };
-                fileCount = 0;
-                await System.Threading.Tasks.Task.Run(() => {
+            if (_SourceRB != sourceRB.DeleteOnly) {
 
-                    ((IProgress<int>)progress).Report(0);
-
-
-                    // ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 1 }; // Use 2/3 the available cores
-                    ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = (Environment.ProcessorCount * 3) / 4 }; // Use 3/4 the available cores
-                    Parallel.ForEach(files, parallelOptions, file => {
-                        string outputFile = SetOutputFilePath(file, outputType);
-
-                        using (var image = new MagickImage(file)) {
-
-                            // Stats collection
-                            long fileSize = new FileInfo(file).Length;
-                            Interlocked.Add(ref totalBytesRead, fileSize);
-
-                            // Add text to the image
-                            if (copyRightNotice.Length > 1 || addFileName) {
-                                AddTextItems(file, copyRightNotice, addFileName, image);
-                            }
-
-                            IMagickImage<ushort> resizedImage = ResizeImage(image);
-                            resizedImage.Format = _OutputType;
-                            resizedImage.Quality = _ImageQuality;
-                            try {
-                                resizedImage.Write(outputFile);
+                foreach (var folder in folders) {
+                    var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.TopDirectoryOnly));
+                    int totalFiles = files.Count();
+                    var folderName = new DirectoryInfo(folder).Name; // Just the parent folder name
+                    this.Dispatcher.Invoke(() => folderLabel.Content = $"Processing: {folderName}");
+                    var folderStats = new FolderStats {
+                        FolderName = folder,
+                        InputFileType = _InputType.ToString(),
+                        OutputFileType = _OutputType.ToString(),
+                        ResizeType = _ResizeRB.ToString()
+                    };
+                    fileCount = 0;
+                    await System.Threading.Tasks.Task.Run(() => {
+                        ((IProgress<int>)progress).Report(0);
+                        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = (Environment.ProcessorCount * 3) / 4 }; // Use 3/4 the available cores
+                        Parallel.ForEach(files, parallelOptions, file => {
+                            string outputFile = SetOutputFilePath(file);
+                            using (var image = new MagickImage(file)) {
+                                if (_OutputType.ToString().ToLower() == "webp" && (image.Width > 16000 || image.Height > 16000)) {
+                                    AutoResizeHugeImages(image);
+                                }
                                 // Stats collection
-                                fileSize = new FileInfo(outputFile).Length;
-                                Interlocked.Add(ref totalBytesWritten, fileSize);
-                                //Interlocked.Increment(ref fileCount);
+                                long fileSize = new FileInfo(file).Length;
+                                Interlocked.Add(ref totalBytesRead, fileSize);
+                                // Add text to the image
+                                if (copyRightNotice.Length > 1 || addFileName) {
+                                    AddTextItems(file, copyRightNotice, addFileName, image);
+                                }
 
-                                // Update progress asynchronously
-                                ((IProgress<int>)progress).Report((int)((Interlocked.Increment(ref fileCount) * 100.0) / totalFiles));
-                            }
-                            catch (Exception ex) {
-                                HandleOutputException(outputFile, ex);
-                            }
+                                IMagickImage<ushort> resizedImage = ResizeImage(image);
+                                resizedImage.Format = _OutputType;
+                                resizedImage.Quality = _ImageQuality;
+                                try {
+                                    resizedImage.Write(outputFile);
+                                    resizedImage.Dispose();
+                                    // Stats collection
+                                    fileSize = new FileInfo(outputFile).Length;
+                                    Interlocked.Add(ref totalBytesWritten, fileSize);
 
-                        }
+                                    // Update progress asynchronously
+                                    ((IProgress<int>)progress).Report((int)((Interlocked.Increment(ref fileCount) * 100.0) / totalFiles));
+                                }
+                                catch (Exception ex) {
+                                    HandleOutputException(outputFile, ex);
+                                }
+
+                            }
+                        });
+
+                        ((IProgress<int>)progress).Report(100);
+
                     });
 
-                    ((IProgress<int>)progress).Report(100);
-
-                });
-
-                UpdateStats(startTime, totalBytesRead, totalBytesWritten, fileCount, folderStats);
-
+                    UpdateStats(startTime, totalBytesRead, totalBytesWritten, fileCount, folderStats);
+                }
+                progressBar.Value = 100;
+                System.Windows.MessageBox.Show("Conversion/Resizing phase complete!");
             }
-            windowHandler.EndProcessing();
 
             // Ensure the progress bar is fully filled when the folder is done
-            progressBar.Value = 100;
-
-            MessageBox.Show("Conversion/Resizing phase complete!");
-            if (_SourceRB == sourceRB.Delete) {
-                if (MessageBox.Show("Final chance to keep the input files. Keep them after all?",
-                                    "Check",
-                                    MessageBoxButton.YesNo,
-                                    MessageBoxImage.Question) == MessageBoxResult.Yes) {
-                    return;
+            bool keep = false;
+            if (_SourceRB != sourceRB.Keep) {
+                if (_SourceRB == sourceRB.Delete) {
+                    if (System.Windows.MessageBox.Show("Final chance to keep the input files. Keep them after all?",
+                                        "Check",
+                                        MessageBoxButton.YesNo,
+                                        MessageBoxImage.Question) == MessageBoxResult.Yes) {
+                        keep = true;
+                    }
                 }
-                DeleteSourceFiles(folders, searchPatterns);
+                if (!keep) {
+                    DeleteSourceFiles(folders, searchPatterns);
+                }
             }
 
             progressBar.Value = 0;
-            btnShowStats.IsEnabled = true;
-            btnErrorLog.IsEnabled = true;
+            windowHandler.EndProcessing();
+        }
+
+        private static void AutoResizeHugeImages(MagickImage image) {
+            // Resize to fit within the hardcoded limits of ImageMagick for WebP
+            double scale = Math.Min(16000.0 / image.Width, 16000.0 / image.Height);
+            uint newWidth = (uint)(image.Width * scale);
+            uint newHeight = (uint)(image.Height * scale);
+            image.Resize(newWidth, newHeight);
         }
 
         private void DeleteSourceFiles(List<string> folders, string[]? searchPatterns) {
-
             windowHandler.StartProcessing();
-
             string outputType = _OutputType.ToString().ToLower();
             foreach (var folder in folders) {
                 var files = searchPatterns.SelectMany(pattern => Directory.GetFiles(folder, pattern, SearchOption.TopDirectoryOnly));
@@ -285,19 +291,18 @@ namespace ConvertFoldersToWebP {
                             File.Delete(file);
                         }
                         catch (Exception ex) {
-                            if (MessageBox.Show("Could not delete " + file + " because " + ex.Message + " Continue (Yes) [recommended] or quit (No)?",
+                            if (System.Windows.MessageBox.Show("Could not delete " + file + " because " + ex.Message + " Continue (Yes) [recommended] or quit (No)?",
                                 "Error",
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Error) == MessageBoxResult.No) {
-                                Application.Current.Shutdown();
+                                System.Windows.Application.Current.Shutdown();
                             }
                         }
                     }
                 });
-
             }
             windowHandler.EndProcessing();
-            MessageBox.Show("Deletion phase complete!");
+            System.Windows.MessageBox.Show("Deletion phase complete!");
         }
 
         private IMagickImage<ushort> ResizeImage(MagickImage image) {
@@ -324,7 +329,6 @@ namespace ConvertFoldersToWebP {
             return resizedImage;
         }
 
-
         private string[] GetSearchPatterns() {
             return _InputType.ToLower() switch {
                 "webp" => ["*.webp", "*.WEBP", "*.webP"],
@@ -350,12 +354,13 @@ namespace ConvertFoldersToWebP {
 
         private void HandleOutputException(string outputFile, Exception ex) {
             string message = "Could not create " + outputFile + " because " + ex.Message;
+            _Errors.Add(message);
             _ErrorLogFile.WriteLineAsync(message);
-            if (MessageBox.Show(message + " Continue (Yes) or quit (No)?",
+            if (System.Windows.MessageBox.Show(message + " Continue (Yes) or quit (No)?",
                 "Error",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error) == MessageBoxResult.No) {
-                Application.Current.Shutdown();
+                System.Windows.Application.Current.Shutdown();
             }
         }
 
@@ -398,7 +403,7 @@ namespace ConvertFoldersToWebP {
             drawables.Draw(image);
         }
 
-        private string SetOutputFilePath(string file, string outputType) {
+        private string SetOutputFilePath(string file) {
             if (_OutputFolder != string.Empty) {
                 string outputFile = TransposeFilePath(_RootFolder, file, _OutputFolder);
                 string inputExt = Path.GetExtension(outputFile);
@@ -439,7 +444,7 @@ namespace ConvertFoldersToWebP {
             return newPath;
         }
 
-        private void LoadFileTypes(ComboBox cboFileType) {
+        private void LoadFileTypes(System.Windows.Controls.ComboBox cboFileType) {
             cboFileType.Items.Add("bmp");
             cboFileType.Items.Add("gif");
             cboFileType.Items.Add("jpeg");
@@ -465,10 +470,6 @@ namespace ConvertFoldersToWebP {
                 _ResizeAmount = 0;
                 e.Handled = false;
             }
-        }
-
-        private void txtResizeAmount_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) {
-
         }
 
         private void SetResizeRB() {
@@ -550,7 +551,7 @@ namespace ConvertFoldersToWebP {
             var result = ValidRange(txtQuality.Text, 50, 100);
             if (result.valid) {
                 _ImageQuality = (uint)result.value;
-                Settings1.Default.Amount = result.value;
+                Settings1.Default.Quality = result.value;
                 Settings1.Default.Save();
             }
             else {
@@ -565,7 +566,7 @@ namespace ConvertFoldersToWebP {
                     return (value, true);
                 }
             }
-            MessageBox.Show("Value must be in range " + lowerValue.ToString() + " to " + upperValue.ToString(), "Error", MessageBoxButton.OK);
+            System.Windows.MessageBox.Show("Value must be in range " + lowerValue.ToString() + " to " + upperValue.ToString(), "Error", MessageBoxButton.OK);
             return (-1, false);
         }
         private void txtResizeAmount_LostFocus(object sender, RoutedEventArgs e) {
@@ -608,7 +609,9 @@ namespace ConvertFoldersToWebP {
             }
             else if (rbKeep.IsChecked == true) {
                 _SourceRB = sourceRB.Keep;
-
+            }
+            else if (rbDeleteOnly.IsChecked == true) {
+                _SourceRB = sourceRB.DeleteOnly;
             }
             Settings1.Default.KeepInput = _SourceRB == sourceRB.Keep;
             Settings1.Default.Save();
@@ -620,19 +623,19 @@ namespace ConvertFoldersToWebP {
             }
             FolderSelector.Enabled = true;
             if (_OutputType.ToString().ToLower() == _InputType && txtOutputFolder.Text == string.Empty) {
-                MessageBox.Show("If the input and output file types are the same, you must select a separate output folder.", "Error", MessageBoxButton.OK);
+                System.Windows.MessageBox.Show("If the input and output file types are the same, you must select a separate output folder.", "Error", MessageBoxButton.OK);
                 return false;
             }
             if ((_ResizeAmount ?? 0) == 0 && (_ResizeRB != resizeRB.None)) {
-                MessageBox.Show("You must specify a resize value and an output path unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
+                System.Windows.MessageBox.Show("You must specify a resize value and an output path unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
                 return false;
             }
             if (!ValidDirectory(_OutputFolder) && (_ResizeRB != resizeRB.None)) {
-                MessageBox.Show("You must specify a resize value and an output path unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
+                System.Windows.MessageBox.Show("You must specify a resize value and an output path unless you selected \"None\", i.e. no change in size.", "Error", MessageBoxButton.OK);
                 return false;
             }
             if ((_SourceRB == sourceRB.Delete) && (_ResizeRB != resizeRB.None) && !ValidDirectory(_OutputFolder)) {
-                if (MessageBox.Show("You are deleting the input files and resizing the output files. If resizing makes the output files smaller, image quality will suffer. " +
+                if (System.Windows.MessageBox.Show("You are deleting the input files and resizing the output files. If resizing makes the output files smaller, image quality will suffer. " +
                     "Are you certain you want to do this?", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No) {
                     return false;
                 }
@@ -648,15 +651,27 @@ namespace ConvertFoldersToWebP {
             SetSourceRB();
         }
 
+        private void rbDeleteOnly_Click(object sender, RoutedEventArgs e) {
+            SetSourceRB();
+        }
+
         private void GetOutputFilePath() {
             var dialog = new CommonOpenFileDialog();
             dialog.IsFolderPicker = true;
+            if (_OutputFolder == string.Empty && _RootFolder != string.Empty) {
+                _OutputFolder = _RootFolder;
+            }
+            dialog.InitialDirectory = _OutputFolder;
             CommonFileDialogResult result = dialog.ShowDialog();
             if (result == CommonFileDialogResult.Ok) {
                 _OutputFolder = dialog.FileName;
                 txtOutputFolder.Text = _OutputFolder;
                 Settings1.Default.OutputFolder = _OutputFolder;
                 Settings1.Default.Save();
+
+                if (FolderSelector.RootFolder == string.Empty) {
+                    FolderSelector.RootFolder = _OutputFolder;
+                }
             }
         }
 
@@ -677,13 +692,13 @@ namespace ConvertFoldersToWebP {
         }
 
         private void cboInputFileType_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            _InputType = ((ComboBox)sender).SelectedValue.ToString();
+            _InputType = ((System.Windows.Controls.ComboBox)sender).SelectedValue.ToString();
             Settings1.Default.InputFileType = _InputType;
             Settings1.Default.Save();
         }
 
         private void cboOutputFileType_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            string outputType = ((ComboBox)sender).SelectedValue.ToString();
+            string outputType = ((System.Windows.Controls.ComboBox)sender).SelectedValue.ToString();
             _OutputType = OutputType(outputType);
             Settings1.Default.OutputFileType = outputType;
             Settings1.Default.Save();
@@ -704,50 +719,27 @@ namespace ConvertFoldersToWebP {
             }
             return MagickFormat.Jpg;
         }
-
-        private void ShowStats_Click(object sender, RoutedEventArgs e) {
-            StatsGrid.ItemsSource = StatsCollection;
-            StatsPopup.IsOpen = true;
-        }
-
-        private void CloseStats_Click(object sender, RoutedEventArgs e) {
-            StatsPopup.IsOpen = false;
-        }
         private void SaveStatsToCSV_Click(object sender, RoutedEventArgs e) {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog();
             saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
             if (saveFileDialog.ShowDialog() == true) {
                 using (var writer = new StreamWriter(saveFileDialog.FileName))
                 using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture)) {
                     csv.WriteRecords(StatsCollection);
                 }
-                MessageBox.Show("Stats have been saved to CSV.");
+                System.Windows.MessageBox.Show("Stats have been saved to CSV file: " + saveFileDialog.FileName, "Information", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-        }
-
-        private void btnErrorLog_Click(object sender, RoutedEventArgs e) {
-            ErrorLogPopup.IsOpen = true;
-            if (_Errors.Count() == 0) {
-                lstErrorLog.Items.Add("No Errors");
-            }
-            else {
-                foreach (string err in _Errors) {
-                    lstErrorLog.Items.Add(err);
-                }
-            }
-        }
-
-        private void CloseErrorLog_Click(Object sender, RoutedEventArgs e) {
-            ErrorLogPopup.IsOpen = false;
         }
 
         private void btnHelp_Click(object sender, RoutedEventArgs e) {
-            Help.IsOpen = true;
+            string xpsFilePath = Path.Combine(GetExePath(), "CONVERT AND RESIZE IMAGE FOLDERS.xps");
+            HelpViewer helpWindow = new HelpViewer();
+            helpWindow.SetDocument(xpsFilePath);
+            helpWindow.ShowDialog(); // or Show() if you prefer non-modal
         }
-
-        private void btnCloseHelp_Click(object sender, RoutedEventArgs e) {
-            Help.IsOpen = false;
-        }
+        //private void btnCloseHelp_Click(object sender, RoutedEventArgs e) {
+        //    Help.IsOpen = false;
+        //}
 
         private void winMain1_Unloaded(object sender, RoutedEventArgs e) {
             _ErrorLogFile.Close();
@@ -762,6 +754,10 @@ namespace ConvertFoldersToWebP {
         private void chkFileName_LostFocus(object sender, RoutedEventArgs e) {
             Settings1.Default.AddFileName = (bool)chkFileName.IsChecked;
             Settings1.Default.Save();
+        }
+
+        private void txtOutputFolder_TextChanged(object sender, TextChangedEventArgs e) {
+            _OutputFolder = txtOutputFolder.Text;
         }
     }
     public class ByteToMBConverter : IValueConverter {
@@ -830,7 +826,7 @@ namespace ConvertFoldersToWebP {
             window.IsEnabled = false;
 
             // Change the cursor to indicate waiting
-            Mouse.OverrideCursor = Cursors.Wait;
+            Mouse.OverrideCursor = System.Windows.Input.Cursors.Wait;
         }
 
         /// <summary>
