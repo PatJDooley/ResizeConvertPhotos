@@ -7,46 +7,53 @@
              mc:Ignorable="d" 
              d:DesignHeight="400" d:DesignWidth="600">
     <GroupBox Header="Folder Selection" Padding="5">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions >
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Button x:Name="BrowseButton" Grid.Row="0" Grid.Column="0"  HorizontalAlignment="Left" Width="96" 
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions >
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="BrowseButton" Grid.Row="0" Grid.Column="0"  HorizontalAlignment="Left" Width="96" 
                 Style="{StaticResource ButtonTextStyle}"
-                Content="Select Folders" Click="BrowseButton_Click" />
-        <Button x:Name="CheckAll" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Center" Width="96" 
+                Content="Select" Click="BrowseButton_Click" />
+            <Button x:Name="CheckAll" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Center" Width="96"
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Check All"  
                 IsEnabled="False" Click="CheckAll_Click"/>
-        <Button x:Name="ClearChecks" Grid.Row="0" Grid.Column="2"  HorizontalAlignment="Center" Width="96" 
+            <Button x:Name="ClearChecks" Grid.Row="0" Grid.Column="2"  HorizontalAlignment="Right" Width="96" 
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Clear Checks" 
                 IsEnabled="False" Click="ClearChecks_Click"/>
-        <Button x:Name="OK" Grid.Row="0" Grid.Column="3"  HorizontalAlignment="Right" Width="96" 
+            <Button x:Name="OK" Grid.Row="3" Grid.Column="1"  HorizontalAlignment="Center" Width="96" Margin="0,5,0,0"
                 Style="{StaticResource ButtonTextStyle}"
-                Content="OK" 
-                IsEnabled="False" Click="OK_Click"/>        
-        <TextBox x:Name="RootFolderTextBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Height="30" IsReadOnly="true"  
+                Content="Process Folder(s)" 
+                IsEnabled="False" Click="OK_Click"/>
+            <TextBox x:Name="RootFolderTextBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Height="30" IsReadOnly="true"  
                      VerticalContentAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,5,0,5" />
 
-        <TreeView x:Name="FolderTreeView"  Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" MaxHeight="600">
-            <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
-                    <StackPanel Orientation="Horizontal">
-                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" />
-                        <TextBlock Text="{Binding Name}" Margin="5,0" />
-                    </StackPanel>
-                </HierarchicalDataTemplate>
-            </TreeView.ItemTemplate>
-        </TreeView>
-    </Grid>
+            <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto">
+                <TreeView x:Name="FolderTreeView" MaxHeight="400" >
+                    <!--<TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Expand All" Click="ExpandAll_Click"/>
+                        </ContextMenu>
+                    </TreeView.ContextMenu>-->
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                <TextBlock Text="{Binding Name}" Margin="5,0" />
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </ScrollViewer>
+        </Grid>
     </GroupBox>
 </UserControl>

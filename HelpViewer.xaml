@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ConvertFoldersToWebP"
         mc:Ignorable="d"
-        Title="Help Viewer" Height="450" Width="800" ResizeMode="CanResize" 
+        Title="Help Viewer" Height="800" Width="800" ResizeMode="CanResize" 
         WindowStyle="SingleBorderWindow" WindowStartupLocation="CenterScreen">
     <DocumentViewer Name="helpViewer" />
 </Window>

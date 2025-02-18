@@ -5,12 +5,12 @@
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Foreground" Value="#21618C"/>
         <Setter Property="Height" Value="30"/>
-        <Setter Property="Padding" Value="5"/>
+        <Setter Property="Padding" Value="3"/>
         <Setter Property="Background">
             <Setter.Value>
                 <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                     <GradientStop Color="#78A8C0" Offset="1"/>
-                    <GradientStop Color="#A8D0E0" Offset="0.75"/>
+                    <GradientStop Color="#A8D0E0" Offset="0.65"/>
                     <GradientStop Color="#C6E6F5" Offset="0"/>
                 </LinearGradientBrush>
             </Setter.Value>
@@ -21,11 +21,9 @@
         <Setter Property="Control.Background">
             <Setter.Value>
                 <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-
                     <GradientStop Color="#78A8C0" Offset="1"/>
-                    <GradientStop Color="#A8D0E0" Offset="0.5"/>
+                    <GradientStop Color="#A8D0E0" Offset="0.35"/>
                     <GradientStop Color="#C6E6F5" Offset="0"/>
-
                 </LinearGradientBrush>
             </Setter.Value>
         </Setter>	

@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
 
@@ -23,7 +25,7 @@ namespace ConvertFoldersToWebP {
 
         public bool Enabled {
             get { return (bool)GetValue(EnabledProperty); }
-            set { 
+            set {
                 SetValue(EnabledProperty, value);
                 BrowseButton.IsEnabled = value;
             }
@@ -116,44 +118,44 @@ namespace ConvertFoldersToWebP {
             var selectedFolders = GetSelectedFolders(FolderTreeView.Items.Cast<FolderItem>());
             SelectedFoldersChanged?.Invoke(this, new SelectedFoldersEventArgs(selectedFolders));
         }
-    }
 
-    public class FolderItem : INotifyPropertyChanged {
-        private bool _isSelected;
+        public class FolderItem : INotifyPropertyChanged {
+            private bool _isSelected;
 
-        public string Name { get; set; }
-        public string FullPath { get; set; }
-        public ObservableCollection<FolderItem> SubFolders { get; set; }
+            public string Name { get; set; }
+            public string FullPath { get; set; }
+            public ObservableCollection<FolderItem> SubFolders { get; set; }
 
-        public bool IsSelected {
-            get { return _isSelected; }
-            set {
-                if (_isSelected != value) {
-                    _isSelected = value;
-                    OnPropertyChanged(nameof(IsSelected));
+            public bool IsSelected {
+                get { return _isSelected; }
+                set {
+                    if (_isSelected != value) {
+                        _isSelected = value;
+                        OnPropertyChanged(nameof(IsSelected));
+                    }
                 }
             }
-        }
 
-        public FolderItem(string path) {
-            FullPath = path;
-            Name = System.IO.Path.GetFileName(path);
-            SubFolders = new ObservableCollection<FolderItem>();
+            public FolderItem(string path) {
+                FullPath = path;
+                Name = System.IO.Path.GetFileName(path);
+                SubFolders = new ObservableCollection<FolderItem>();
 
-            try {
-                foreach (var dir in Directory.GetDirectories(path)) {
-                    SubFolders.Add(new FolderItem(dir));
+                try {
+                    foreach (var dir in Directory.GetDirectories(path)) {
+                        SubFolders.Add(new FolderItem(dir));
+                    }
+                }
+                catch (UnauthorizedAccessException) {
+                    // Handle unauthorized access
                 }
             }
-            catch (UnauthorizedAccessException) {
-                // Handle unauthorized access
+
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            protected void OnPropertyChanged(string propertyName) {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged(string propertyName) {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
