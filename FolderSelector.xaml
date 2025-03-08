@@ -1,5 +1,5 @@
-﻿<UserControl x:Class="ConvertFoldersToWebP.FolderSelector"
-             xmlns:local="clr-namespace:ConvertFoldersToWebP"
+﻿<UserControl x:Class="CRIMP.FolderSelector"
+             xmlns:local="clr-namespace:CRIMP"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -30,24 +30,20 @@
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Clear Checks" 
                 IsEnabled="False" Click="ClearChecks_Click"/>
-            <Button x:Name="OK" Grid.Row="3" Grid.Column="1"  HorizontalAlignment="Center" Width="96" Margin="0,5,0,0"
+            <Button x:Name="OK" Grid.Row="3" Grid.Column="1"  HorizontalAlignment="Center" Width="120" Margin="0,5,0,0"
                 Style="{StaticResource ButtonTextStyle}"
                 Content="Process Folder(s)" 
                 IsEnabled="False" Click="OK_Click"/>
             <TextBox x:Name="RootFolderTextBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Height="30" IsReadOnly="true"  
                      VerticalContentAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,5,0,5" />
 
-            <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto">
-                <TreeView x:Name="FolderTreeView" MaxHeight="400" >
-                    <!--<TreeView.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Expand All" Click="ExpandAll_Click"/>
-                        </ContextMenu>
-                    </TreeView.ContextMenu>-->
+            <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Disabled">
+                <TreeView x:Name="FolderTreeView" MaxHeight="500" >
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
                             <StackPanel Orientation="Horizontal">
-                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          Click="FolderCheckBox_Click" /> 
                                 <TextBlock Text="{Binding Name}" Margin="5,0" />
                             </StackPanel>
                         </HierarchicalDataTemplate>

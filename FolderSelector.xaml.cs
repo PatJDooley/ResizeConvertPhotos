@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
 
-namespace ConvertFoldersToWebP {
+namespace CRIMP {
     public partial class FolderSelector : System.Windows.Controls.UserControl {
 
         public FolderSelector() {
@@ -91,7 +84,6 @@ namespace ConvertFoldersToWebP {
             }
             CheckAll.IsEnabled = false;
             ClearChecks.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
-            // OK_Click(sender, e);
         }
 
         private void ClearChecks_Click(object sender, RoutedEventArgs e) {
@@ -100,10 +92,17 @@ namespace ConvertFoldersToWebP {
             }
             CheckAll.IsEnabled = FolderTreeView.Items.Count > 0 ? true : false;
             ClearChecks.IsEnabled = false;
-            // OK_Click(sender, e);
-
         }
 
+        private void FolderCheckBox_Click(object sender, RoutedEventArgs e) {
+            if (sender is CheckBox checkBox) {
+                if (checkBox.DataContext is FolderItem folderItem) {
+                    bool newState = checkBox.IsChecked ?? false;
+                    SetIsSelectedRecursive(folderItem, newState);
+                    UpdateButtonStates();
+                }
+            }
+        }
         private void SetIsSelectedRecursive(FolderItem item, bool isSelected) {
             item.IsSelected = isSelected; // Set the current item's IsSelected property
 
@@ -111,6 +110,26 @@ namespace ConvertFoldersToWebP {
             foreach (var subFolder in item.SubFolders) {
                 SetIsSelectedRecursive(subFolder, isSelected);
             }
+        }
+
+        private void UpdateButtonStates() {
+            bool anySelected = FolderTreeView.Items.Cast<FolderItem>()
+                .Any(item => IsAnySelectedRecursive(item));
+            bool allSelected = FolderTreeView.Items.Cast<FolderItem>()
+                .All(item => IsAllSelectedRecursive(item));
+
+            CheckAll.IsEnabled = !allSelected && FolderTreeView.Items.Count > 0;
+            ClearChecks.IsEnabled = anySelected;
+        }
+
+        private bool IsAnySelectedRecursive(FolderItem item) {
+            if (item.IsSelected) return true;
+            return item.SubFolders.Any(subFolder => IsAnySelectedRecursive(subFolder));
+        }
+
+        private bool IsAllSelectedRecursive(FolderItem item) {
+            if (!item.IsSelected) return false;
+            return item.SubFolders.All(subFolder => IsAllSelectedRecursive(subFolder));
         }
 
         private void OK_Click(object sender, RoutedEventArgs e) {

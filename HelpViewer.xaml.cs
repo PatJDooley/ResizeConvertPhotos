@@ -3,7 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Xps.Packaging;
 
-namespace ConvertFoldersToWebP
+namespace CRIMP
 {
     /// <summary>
     /// Interaction logic for Window1.xaml

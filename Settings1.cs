@@ -1,4 +1,4 @@
-﻿namespace ConvertFoldersToWebP {
+﻿namespace CRIMP {
     
     
     // This class allows you to handle specific events on the settings class:

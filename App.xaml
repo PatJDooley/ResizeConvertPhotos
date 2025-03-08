@@ -1,15 +1,13 @@
-﻿<Application x:Class="ConvertFoldersToWebP.App"
+﻿<Application x:Class="CRIMP.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:ConvertFoldersToWebP"
-             StartupUri="CRIMP.xaml">
+             xmlns:local="clr-namespace:CRIMP"
+             StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <local:ByteToMBConverter x:Key="ByteToMBConverter"/>
-            <local:ByteToKBConverter x:Key="ByteToKBConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

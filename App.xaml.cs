@@ -2,13 +2,12 @@
 using System.Data;
 using System.Windows;
 
-namespace ConvertFoldersToWebP
-{
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : System.Windows.Application
-    {
-    }
+namespace CRIMP;
 
+/// <summary>
+/// Interaction logic for App.xaml
+/// </summary>
+public partial class App : Application
+{
 }
+
